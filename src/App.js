@@ -5,7 +5,8 @@ import { Route, Switch } from 'react-router-dom'
 import Shop from './pages/shop/shop.component'
 import Header from './component/header/header.component'
 import LoginPage from './pages/login-page/login-page.component'
-import { auth } from './firebase/firbase.utils'
+import { auth, createUserProfile } from './firebase/firbase.utils'
+
 class App extends React.Component {
   constructor() {
     super()
@@ -16,8 +17,22 @@ class App extends React.Component {
 
   unsubscribeFromAuth = null
   componentDidMount() {
-    this.unsubscribeFromAuth = auth.onAuthStateChanged((user) => {
-      this.setState({ 'currentUser': user })
+    this.unsubscribeFromAuth = auth.onAuthStateChanged(async (userAuth) => {
+      if (userAuth) {
+        const userRef = await createUserProfile(userAuth)
+        userRef.onSnapshot((snapShot) => {
+
+
+          this.setState({
+            currentUser: {
+              id: snapShot.id,
+              ...snapShot.data()
+            }
+          })
+        })
+      } else {
+        this.setState({ currentUser: userAuth })
+      }
     }
     )
   }
@@ -29,7 +44,7 @@ class App extends React.Component {
     return (
 
       <div className="App">
-        <Header currentUser = {this.state.currentUser}/>
+        <Header currentUser={this.state.currentUser} />
         <Switch>
           <Route exact path="/shop" component={Shop} />
           <Route exact path="/login" component={LoginPage} />
